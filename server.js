@@ -2,7 +2,17 @@
 
 const { Server } = require("socket.io");
 const http = require("http");
-const server = http.createServer();
+
+const server = http.createServer((req, res) => {
+  if (req.url === "/") {
+    res.writeHead(200, {"Content-Type": "text/plain"});
+    res.end("Server is running");
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
 const io = new Server(server, {
   cors: {
     origin: "*", // Flutter client için CORS açıyoruz
