@@ -104,6 +104,6 @@ function determineWinner(scores) {
   return { winner: null, scores }; // Beraberlik
 }
 
-server.listen(3000, () => {
-  console.log("Sunucu 3000 portunda çalışıyor");
+server.listen(process.env.PORT || 3000, () => {
+  console.log(`Sunucu ${process.env.PORT || 3000} portunda çalışıyor`);
 });
