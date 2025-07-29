@@ -88,11 +88,23 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("Oyuncu ayrıldı:", socket.id);
-    if (waitingPlayer && waitingPlayer.id === socket.id) {
-      waitingPlayer = null;
+  console.log("Oyuncu ayrıldı:", socket.id);
+  if (waitingPlayer && waitingPlayer.id === socket.id) {
+    waitingPlayer = null;
+  }
+
+  // Oyun içindeki oyuncuyu ve oyunu temizle
+  for (const gameId in ongoingGames) {
+    const game = ongoingGames[gameId];
+    if (game.players.find(p => p.id === socket.id)) {
+      // Oyuncu oyunda ise, oyunu iptal et veya diğer oyuncuya bildirim gönder
+      io.to(gameId).emit("opponent_disconnected");
+      delete ongoingGames[gameId];
+      console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
+      break;
     }
-  });
+  }
+});
 });
 
 function determineWinner(scores) {
