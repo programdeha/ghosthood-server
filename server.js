@@ -22,10 +22,7 @@ const io = new Server(server, {
 let waitingPlayer = null;
 let ongoingGames = {}; // gameId: { players, scores, startTime }
 
-// Her bağlanan oyuncu için:
-io.on("connection", (socket) => {
-  console.log("Bir oyuncu bağlandı:", socket.id);
-
+  
   socket.on("join_game", ({ userId, username }) => {
     socket.data.userId = userId;
     socket.data.username = username;
