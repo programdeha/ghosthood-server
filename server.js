@@ -50,11 +50,17 @@ io.on("connection", (socket) => {
 
       io.to(gameId).emit("game_start", {
         gameId,
-        opponent: {
-          [player1.id]: player2.data.username,
-          [player2.id]: player1.data.username,
+        opponentInfo: {
+          [player1.id]: {
+            userId: player2.data.userId,
+            username: player2.data.username,
+          },
+          [player2.id]: {
+            userId: player1.data.userId,
+            username: player1.data.username,
+          }
         },
-        duration: 60, // saniye
+        duration: 60,
       });
 
       // 60 saniye sonra sonuç gönder
