@@ -90,14 +90,19 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
     }
   });
 
-  socket.on("disconnect", () => {
+   socket.on("disconnect", () => {
     console.log("Oyuncu ayrıldı:", socket.id);
+  
+    // Bekleyen oyuncu ise, sıfırla
     if (waitingPlayer && waitingPlayer.id === socket.id) {
       waitingPlayer = null;
     }
-
+  
+    // Aktif oyunları kontrol et
     for (const gameId in ongoingGames) {
       const game = ongoingGames[gameId];
+  
+      // Oyuncu bu oyundaysa
       if (game.players.find(p => p.id === socket.id)) {
         io.to(gameId).emit("opponent_disconnected");
         delete ongoingGames[gameId];
