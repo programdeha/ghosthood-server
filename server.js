@@ -1,29 +1,30 @@
-// multiplayer_game_server.js
-
 const { Server } = require("socket.io");
 const http = require("http");
 
 const server = http.createServer((req, res) => {
   if (req.url === "/") {
-    res.writeHead(200, {"Content-Type": "text/plain"});
-    res.end("Server is running");
+    const message = "Server is running";
+    res.writeHead(200, {
+      "Content-Type": "text/plain",
+      "Content-Length": Buffer.byteLength(message),
+    });
+    res.end(message);
   } else {
     res.writeHead(404);
-    res.end();
+    res.end("Not Found");
   }
 });
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Flutter client için CORS açıyoruz
+    origin: "*",
   },
 });
 
 let waitingPlayer = null;
-let ongoingGames = {}; // gameId: { players, scores, startTime }
+let ongoingGames = {};
 
-  
- io.on("connection", (socket) => {
+io.on("connection", (socket) => {
   console.log("Yeni bağlantı:", socket.id);
 
   socket.on("join_game", ({ userId, username }) => {
@@ -57,7 +58,7 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
           [player2.id]: {
             userId: player1.data.userId,
             username: player1.data.username,
-          }
+          },
         },
         duration: 60,
       });
@@ -90,26 +91,24 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
     }
   });
 
-   socket.on("disconnect", () => {
+  socket.on("disconnect", () => {
     console.log("Oyuncu ayrıldı:", socket.id);
-  
-    // Bekleyen oyuncu ise, sıfırla
-    if (waitingPlayer && waitingPlayer.id === socket.id) {
-      waitingPlayer = null;
-    }
-  
-    // Aktif oyunları kontrol et
-    for (const gameId in ongoingGames) {
-      const game = ongoingGames[gameId];
-  
-      // Oyuncu bu oyundaysa
-      if (game.players.find(p => p.id === socket.id)) {
-        io.to(gameId).emit("opponent_disconnected");
-        delete ongoingGames[gameId];
-        console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
-        break;
+
+    setTimeout(() => {
+      if (waitingPlayer && waitingPlayer.id === socket.id) {
+        waitingPlayer = null;
       }
-    }
+
+      for (const gameId in ongoingGames) {
+        const game = ongoingGames[gameId];
+        if (game.players.find((p) => p.id === socket.id)) {
+          io.to(gameId).emit("opponent_disconnected");
+          delete ongoingGames[gameId];
+          console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
+          break;
+        }
+      }
+    }, 2000);
   });
 });
 
@@ -119,8 +118,16 @@ function determineWinner(scores) {
   const s2 = scores[p2];
   if (s1 > s2) return { winner: p1, scores };
   if (s2 > s1) return { winner: p2, scores };
-  return { winner: null, scores }; // Beraberlik
+  return { winner: null, scores };
 }
+
+process.on("SIGTERM", () => {
+  console.log("SIGTERM alındı, sunucu kapatılıyor...");
+  server.close(() => {
+    console.log("Sunucu başarıyla kapatıldı.");
+    process.exit(0);
+  });
+});
 
 server.listen(process.env.PORT || 3000, () => {
   console.log(`Sunucu ${process.env.PORT || 3000} portunda çalışıyor`);
