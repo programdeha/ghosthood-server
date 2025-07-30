@@ -23,12 +23,14 @@ let waitingPlayer = null;
 let ongoingGames = {}; // gameId: { players, scores, startTime }
 
   
+ io.on("connection", (socket) => {
+  console.log("Yeni bağlantı:", socket.id);
+
   socket.on("join_game", ({ userId, username }) => {
     socket.data.userId = userId;
     socket.data.username = username;
 
     if (waitingPlayer) {
-      // Eşleştir
       const gameId = `${waitingPlayer.id}-${socket.id}`;
       const player1 = waitingPlayer;
       const player2 = socket;
@@ -60,7 +62,6 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
         duration: 60,
       });
 
-      // 60 saniye sonra sonuç gönder
       setTimeout(() => {
         const scores = ongoingGames[gameId]?.scores || {};
         const result = determineWinner(scores);
@@ -76,7 +77,6 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
   });
 
   socket.on("send_ghost", ({ gameId, ghostType }) => {
-    // Hayalet gönderimini diğer oyuncuya ilet
     socket.to(gameId).emit("enemy_ghost", {
       ghostType,
       from: socket.id,
@@ -91,22 +91,21 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
   });
 
   socket.on("disconnect", () => {
-  console.log("Oyuncu ayrıldı:", socket.id);
-  if (waitingPlayer && waitingPlayer.id === socket.id) {
-    waitingPlayer = null;
-  }
-
-  // Oyun içindeki oyuncuyu ve oyunu temizle
-  for (const gameId in ongoingGames) {
-    const game = ongoingGames[gameId];
-    if (game.players.find(p => p.id === socket.id)) {
-      // Oyuncu oyunda ise, oyunu iptal et veya diğer oyuncuya bildirim gönder
-      io.to(gameId).emit("opponent_disconnected");
-      delete ongoingGames[gameId];
-      console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
-      break;
+    console.log("Oyuncu ayrıldı:", socket.id);
+    if (waitingPlayer && waitingPlayer.id === socket.id) {
+      waitingPlayer = null;
     }
-  }
+
+    for (const gameId in ongoingGames) {
+      const game = ongoingGames[gameId];
+      if (game.players.find(p => p.id === socket.id)) {
+        io.to(gameId).emit("opponent_disconnected");
+        delete ongoingGames[gameId];
+        console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
+        break;
+      }
+    }
+  });
 });
 
 function determineWinner(scores) {
