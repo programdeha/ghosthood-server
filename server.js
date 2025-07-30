@@ -108,7 +108,6 @@ let ongoingGames = {}; // gameId: { players, scores, startTime }
     }
   }
 });
-});
 
 function determineWinner(scores) {
   const [p1, p2] = Object.keys(scores);
