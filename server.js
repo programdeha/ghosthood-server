@@ -69,12 +69,12 @@ io.on("connection", (socket) => {
   });
 
   // Rakip cihazlara ghost spawn bilgisini gönder
-  socket.on("send_ghost", ({ gameId, ghostId, ghostType, position }) => {
-    socket.to(gameId).emit("enemy_ghost", {
-      ghostId,
-      ghostType,
-      position,
-      from: socket.id,
+  socket.on("send_ghost", ({ gameId, ghostType, ghostId, position }) => {
+  socket.to(gameId).emit("enemy_ghost", {
+    ghostType,
+    ghostId,
+    position,
+    from: socket.id,
     });
   });
 
