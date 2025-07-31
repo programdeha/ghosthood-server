@@ -16,9 +16,7 @@ const server = http.createServer((req, res) => {
 });
 
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
+  cors: { origin: "*" },
 });
 
 let waitingPlayer = null;
@@ -63,13 +61,6 @@ io.on("connection", (socket) => {
         duration: 60,
       });
 
-      setTimeout(() => {
-        const scores = ongoingGames[gameId]?.scores || {};
-        const result = determineWinner(scores);
-        io.to(gameId).emit("game_over", result);
-        delete ongoingGames[gameId];
-      }, 60000);
-
       waitingPlayer = null;
     } else {
       waitingPlayer = socket;
@@ -77,13 +68,25 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send_ghost", ({ gameId, ghostType }) => {
+  // Rakip cihazlara ghost spawn bilgisini gönder
+  socket.on("send_ghost", ({ gameId, ghostId, ghostType, position }) => {
     socket.to(gameId).emit("enemy_ghost", {
+      ghostId,
       ghostType,
+      position,
       from: socket.id,
     });
   });
 
+  // Rakip cihazlara ghost pozisyon güncellemesini gönder
+  socket.on("update_ghost_position", ({ gameId, ghostId, position }) => {
+    socket.to(gameId).emit("enemy_ghost_position", {
+      ghostId,
+      position,
+    });
+  });
+
+  // Ghost öldüğünde skor güncelle
   socket.on("ghost_killed", ({ gameId, by }) => {
     if (ongoingGames[gameId]) {
       ongoingGames[gameId].scores[by]++;
@@ -109,23 +112,6 @@ io.on("connection", (socket) => {
         }
       }
     }, 2000);
-  });
-});
-
-function determineWinner(scores) {
-  const [p1, p2] = Object.keys(scores);
-  const s1 = scores[p1];
-  const s2 = scores[p2];
-  if (s1 > s2) return { winner: p1, scores };
-  if (s2 > s1) return { winner: p2, scores };
-  return { winner: null, scores };
-}
-
-process.on("SIGTERM", () => {
-  console.log("SIGTERM alındı, sunucu kapatılıyor...");
-  server.close(() => {
-    console.log("Sunucu başarıyla kapatıldı.");
-    process.exit(0);
   });
 });
 
