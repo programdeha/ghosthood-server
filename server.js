@@ -79,9 +79,10 @@ io.on("connection", (socket) => {
   });
 
   // Rakip cihazlara ghost pozisyon güncellemesini gönder
-  socket.on("update_ghost_position", ({ gameId, ghostId, position }) => {
+  socket.on("update_ghost_position", ({ gameId, ghostType, ghostId, position }) => {
     socket.to(gameId).emit("enemy_ghost_position", {
       ghostId,
+      ghostType,
       position,
     });
   });
