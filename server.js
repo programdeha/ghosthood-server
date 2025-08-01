@@ -59,44 +59,54 @@ io.on("connection", (socket) => {
     socket.data.userId = userId;
     socket.data.username = userData.username;
 
-    if (waitingPlayer) {
-      const gameId = `${waitingPlayer.id}-${socket.id}`;
-      const player1 = waitingPlayer;
-      const player2 = socket;
+if (waitingPlayer) {
+  const gameId = `${waitingPlayer.id}-${socket.id}`;
+  const player1 = waitingPlayer;
+  const player2 = socket;
 
-      ongoingGames[gameId] = {
-        players: [player1, player2],
-        scores: {
-          [player1.id]: 0,
-          [player2.id]: 0,
-        },
-        startTime: Date.now(),
-      };
+  ongoingGames[gameId] = {
+    players: [player1, player2],
+    scores: {
+      [player1.id]: 0,
+      [player2.id]: 0,
+    },
+    startTime: Date.now(),
+  };
 
-      player1.join(gameId);
-      player2.join(gameId);
+  player1.join(gameId);
+  player2.join(gameId);
 
-      io.to(gameId).emit("game_start", {
-        gameId,
-        opponentInfo: {
-          [player1.id]: {
-            userId: player2.data.userId,
-            username: player2.data.username,
-          },
-          [player2.id]: {
-            userId: player1.data.userId,
-            username: player1.data.username,
-          },
-        },
-        duration: 60,
-      });
-
-      waitingPlayer = null;
-    } else {
-      waitingPlayer = socket;
-      socket.emit("waiting_for_opponent");
-    }
+  // player1'e kendi id'sini ve rakip bilgilerini gönder
+  player1.emit("game_start", {
+    gameId,
+    mySocketId: player1.id,
+    opponentInfo: {
+      [player2.id]: {
+        userId: player2.data.userId,
+        username: player2.data.username,
+      }
+    },
+    duration: 60,
   });
+
+  // player2'ye kendi id'sini ve rakip bilgilerini gönder
+  player2.emit("game_start", {
+    gameId,
+    mySocketId: player2.id,
+    opponentInfo: {
+      [player1.id]: {
+        userId: player1.data.userId,
+        username: player1.data.username,
+      }
+    },
+    duration: 60,
+  });
+
+  waitingPlayer = null;
+} else {
+  waitingPlayer = socket;
+  socket.emit("waiting_for_opponent");
+}
 
   socket.on("send_ghost", ({ gameId, ghostType, ghostId, position }) => {
     socket.to(gameId).emit("enemy_ghost", {
