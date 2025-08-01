@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 const http = require("http");
 const admin = require("firebase-admin");
-const serviceAccount = require("./server/serviceAccountKey.json"); // ← doğru yolu yaz
+const serviceAccount = require("./serviceAccountKey.json"); // ← doğru yolu yaz
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
