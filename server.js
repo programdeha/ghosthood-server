@@ -3,11 +3,19 @@ const http = require("http");
 
 // Firebase Admin SDK
 const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json"); // Firebase servis hesabı dosyan
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+// Firestore'dan kullanıcı verilerini çeken fonksiyon
+async function getUserDataFromFirebase(userId) {
+  const userRef = admin.firestore().collection('users').doc(userId);
+  const doc = await userRef.get();
+
+  if (!doc.exists) {
+    console.log('Kullanıcı bulunamadı:', userId);
+    return null;
+  } else {
+    return doc.data(); // Kullanıcının tüm Firestore verisi
+  }
+}
 
 const db = admin.firestore();
 
