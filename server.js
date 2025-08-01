@@ -1,34 +1,25 @@
 const { Server } = require("socket.io");
 const http = require("http");
-
-// Firebase Admin SDK
 const admin = require("firebase-admin");
+const serviceAccount = require("./server/serviceAccountKey.json"); // ← doğru yolu yaz
 
-// Firestore'dan kullanıcı verilerini çeken fonksiyon
-async function getUserDataFromFirebase(userId) {
-  const userRef = admin.firestore().collection('users').doc(userId);
-  const doc = await userRef.get();
-
-  if (!doc.exists) {
-    console.log('Kullanıcı bulunamadı:', userId);
-    return null;
-  } else {
-    return doc.data(); // Kullanıcının tüm Firestore verisi
-  }
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 const db = admin.firestore();
 
+// Firestore'dan kullanıcı verisi çek
 async function getUserDataFromFirebase(userId) {
   try {
     const doc = await db.collection("players").doc(userId).get();
     if (!doc.exists) {
-      console.log("User not found in Firestore:", userId);
+      console.log("Kullanıcı Firestore'da bulunamadı:", userId);
       return null;
     }
     return doc.data();
   } catch (error) {
-    console.error("Error fetching user data:", error);
+    console.error("Firebase'den veri çekilirken hata:", error);
     return null;
   }
 }
@@ -60,11 +51,11 @@ io.on("connection", (socket) => {
   socket.on("join_game", async ({ userId }) => {
     const userData = await getUserDataFromFirebase(userId);
     if (!userData) {
-      socket.emit("error", { message: "User not found" });
+      socket.emit("error", { message: "Kullanıcı bulunamadı" });
       return;
     }
 
-    socket.data.userId = userId; // burada userId doğrudan parametre olarak alınıyor
+    socket.data.userId = userId;
     socket.data.username = userData.username;
 
     if (waitingPlayer) {
@@ -106,7 +97,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Rakip cihazlara ghost spawn bilgisini gönder
   socket.on("send_ghost", ({ gameId, ghostType, ghostId, position }) => {
     socket.to(gameId).emit("enemy_ghost", {
       ghostType,
@@ -116,7 +106,6 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Rakip cihazlara ghost pozisyon güncellemesini gönder
   socket.on("update_ghost_position", ({ gameId, ghostId, position }) => {
     socket.to(gameId).emit("enemy_ghost_position", {
       ghostId,
@@ -124,7 +113,6 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Ghost öldüğünde skor güncelle
   socket.on("ghost_killed", ({ gameId, by }) => {
     if (ongoingGames[gameId]) {
       ongoingGames[gameId].scores[by]++;
