@@ -6,7 +6,6 @@ node_modules/
 
 # Firebase admin SDK secret key
 serviceAccountKey.json
-server/serviceAccountKey.json
 
 # Logs
 logs
