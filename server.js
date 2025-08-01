@@ -25,48 +25,55 @@ let ongoingGames = {};
 io.on("connection", (socket) => {
   console.log("Yeni bağlantı:", socket.id);
 
-  socket.on("join_game", ({ userId, username }) => {
-    socket.data.userId = userId;
-    socket.data.username = username;
+  socket.on("join_game", async ({ userId }) => {
+  const userData = await getUserDataFromFirebase(userId);
+  if (!userData) {
+    socket.emit("error", { message: "User not found" });
+    return;
+  }
 
-    if (waitingPlayer) {
-      const gameId = `${waitingPlayer.id}-${socket.id}`;
-      const player1 = waitingPlayer;
-      const player2 = socket;
+  socket.data.userId = userData.userId;
+  socket.data.username = userData.username;
 
-      ongoingGames[gameId] = {
-        players: [player1, player2],
-        scores: {
-          [player1.id]: 0,
-          [player2.id]: 0,
+  if (waitingPlayer) {
+    const gameId = `${waitingPlayer.id}-${socket.id}`;
+    const player1 = waitingPlayer;
+    const player2 = socket;
+
+    ongoingGames[gameId] = {
+      players: [player1, player2],
+      scores: {
+        [player1.id]: 0,
+        [player2.id]: 0,
+      },
+      startTime: Date.now(),
+    };
+
+    player1.join(gameId);
+    player2.join(gameId);
+
+    io.to(gameId).emit("game_start", {
+      gameId,
+      opponentInfo: {
+        [player1.id]: {
+          userId: player2.data.userId,
+          username: player2.data.username,
         },
-        startTime: Date.now(),
-      };
-
-      player1.join(gameId);
-      player2.join(gameId);
-
-      io.to(gameId).emit("game_start", {
-        gameId,
-        opponentInfo: {
-          [player1.id]: {
-            userId: player2.data.userId,
-            username: player2.data.username,
-          },
-          [player2.id]: {
-            userId: player1.data.userId,
-            username: player1.data.username,
-          },
+        [player2.id]: {
+          userId: player1.data.userId,
+          username: player1.data.username,
         },
-        duration: 60,
-      });
+      },
+      duration: 60,
+    });
 
-      waitingPlayer = null;
-    } else {
-      waitingPlayer = socket;
-      socket.emit("waiting_for_opponent");
-    }
-  });
+    waitingPlayer = null;
+  } else {
+    waitingPlayer = socket;
+    socket.emit("waiting_for_opponent");
+  }
+});
+
 
   // Rakip cihazlara ghost spawn bilgisini gönder
   socket.on("send_ghost", ({ gameId, ghostType, ghostId, position }) => {
