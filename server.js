@@ -125,9 +125,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("ghost_killed", ({ gameId, by }) => {
-    if (ongoingGames[gameId]) {
-      ongoingGames[gameId].scores[by]++;
-      io.to(gameId).emit("score_update", ongoingGames[gameId].scores);
+    const game = ongoingGames[gameId];
+    if (game) {
+      game.scores[by]++; // by burada artık Firebase UID
+      io.to(gameId).emit("score_update", game.scores);
     }
   });
 
