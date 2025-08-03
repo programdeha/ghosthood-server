@@ -125,12 +125,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("ghost_killed", ({ gameId, by }) => {
-    const game = ongoingGames[gameId];
-    if (game) {
-      game.scores[by]++; // by burada artık Firebase UID
-      io.to(gameId).emit("score_update", game.scores);
-    }
-  });
+  const game = ongoingGames[gameId];
+  if (game && game.scores[by] != null) {
+    game.scores[by]++;
+    io.to(gameId).emit("score_update", game.scores);
+    console.log(`✅ ${by} için skor güncellendi: ${game.scores[by]}`);
+  } else {
+    console.warn(`❌ Geçersiz kullanıcı veya skor: gameId=${gameId}, by=${by}`);
+  }
+});
 
   socket.on("disconnect", () => {
     console.log("Oyuncu ayrıldı:", socket.id);
