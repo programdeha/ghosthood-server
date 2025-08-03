@@ -108,14 +108,20 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send_ghost", ({ gameId, ghostType, ghostId, position }) => {
-    socket.to(gameId).emit("enemy_ghost", {
-      ghostType,
-      ghostId,
-      position,
-      from: socket.id,
-    });
+  socket.on("send_ghost", (data) => {
+  const { gameId, ghostType, ghostId, position, name, speed, attack, health } = data;
+
+  socket.to(gameId).emit("enemy_ghost", {
+    ghostType,
+    ghostId,
+    position,
+    name,
+    speed,
+    attack,
+    health,
+    from: socket.id,
   });
+});
 
   socket.on("update_ghost_position", ({ gameId, ghostId, position }) => {
     socket.to(gameId).emit("enemy_ghost_position", {
