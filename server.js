@@ -66,8 +66,8 @@ io.on("connection", (socket) => {
       ongoingGames[gameId] = {
         players: [player1, player2],
         scores: {
-          [player1.id]: 0,
-          [player2.id]: 0,
+          [player1.data.id]: 0,
+          [player2.data.id]: 0,
         },
         startTime: Date.now(),
       };
