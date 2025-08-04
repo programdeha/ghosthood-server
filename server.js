@@ -108,11 +108,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send_ghost", ({ gameId, ghostType, ghostId, position }) => {
+  socket.on("send_ghost", ({ gameId, ghostType, ghostId, position, lane }) => {
   socket.to(gameId).emit("enemy_ghost", {
     ghostType,
     ghostId,
     position,
+    lane,
     from: socket.id,
   });
 });
