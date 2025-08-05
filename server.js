@@ -141,12 +141,10 @@ io.on("connection", (socket) => {
   
     setTimeout(() => {
       if (waitingPlayer && waitingPlayer.id === socket.id) {
-        // Eğer bekleyen kişi ayrıldıysa sıfırla
-        waitingPlayer = null;
-      } else if (waitingPlayer) {
-        // Eğer bekleyen kişi karşı oyuncuysa, ona bilgi gönder
-        waitingPlayer.emit("opponent_disconnected");
-        waitingPlayer = null;
+          waitingPlayer = null;
+        } else if (waitingPlayer) {
+          waitingPlayer.emit("opponent_disconnected");
+          waitingPlayer = null;
       }
   
       for (const gameId in ongoingGames) {
