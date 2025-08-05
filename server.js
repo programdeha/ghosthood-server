@@ -156,7 +156,7 @@ io.on("connection", (socket) => {
           break;
         }
       }
-    }, 2000);
+    }, 1000);
   });
   
 });
