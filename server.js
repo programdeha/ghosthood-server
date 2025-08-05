@@ -136,28 +136,37 @@ io.on("connection", (socket) => {
     }
   });
 
-   socket.on("disconnect", () => {
-    console.log("Oyuncu ayrıldı:", socket.id);
-  
-    setTimeout(() => {
-      if (waitingPlayer && waitingPlayer.id === socket.id) {
-          waitingPlayer = null;
-        } else if (waitingPlayer) {
-          waitingPlayer.emit("opponent_disconnected");
-          waitingPlayer = null;
+  socket.on("disconnect", () => {
+  console.log("Oyuncu ayrıldı:", socket.id);
+
+  setTimeout(() => {
+    // 1. Bekleme sırasındaysa ve ayrılan oyuncu bekleyen ise, temizle
+    if (waitingPlayer && waitingPlayer.id === socket.id) {
+      console.log("🟡 Bekleyen oyuncu ayrıldı.");
+      waitingPlayer = null;
+      return;
+    }
+
+    // 2. Eğer bekleyen biri varsa ve bu kişi AYRILMAYAN kişi ise, ona opponent_disconnected gönder
+    if (waitingPlayer) {
+      console.log("🔴 Rakip bekleyen oyuncudan ayrıldı, opponent_disconnected gönderiliyor");
+      waitingPlayer.emit("opponent_disconnected");
+      waitingPlayer = null;
+      return;
+    }
+
+    // 3. Oyun sırasında ayrıldıysa
+    for (const gameId in ongoingGames) {
+      const game = ongoingGames[gameId];
+      if (game.players.find((p) => p.id === socket.id)) {
+        io.to(gameId).emit("opponent_disconnected");
+        delete ongoingGames[gameId];
+        console.log(`🚨 Oyun ${gameId} rakip ayrıldığı için sonlandırıldı.`);
+        break;
       }
-  
-      for (const gameId in ongoingGames) {
-        const game = ongoingGames[gameId];
-        if (game.players.find((p) => p.id === socket.id)) {
-          io.to(gameId).emit("opponent_disconnected");
-          delete ongoingGames[gameId];
-          console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
-          break;
-        }
-      }
-    }, 1000);
-  });
+    }
+  }, 1000);
+});
   
 });
 server.listen(process.env.PORT || 3000, () => {
