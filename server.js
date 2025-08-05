@@ -48,66 +48,85 @@ let ongoingGames = {};
 io.on("connection", (socket) => {
   console.log("Yeni bağlantı:", socket.id);
 
-  socket.on("join_game", async ({ userId }) => {
-    const userData = await getUserDataFromFirebase(userId);
-    if (!userData) {
-      socket.emit("error", { message: "Kullanıcı bulunamadı" });
-      return;
+socket.on("join_game", async ({ userId }) => {
+  const userData = await getUserDataFromFirebase(userId);
+  if (!userData) {
+    socket.emit("error", { message: "Kullanıcı bulunamadı" });
+    return;
+  }
+
+  socket.data.userId = userId;
+  socket.data.username = userData.username;
+
+  // 🧹 Daha önce bekleyen oyuncu bu kullanıcıysa, temizle
+  if (waitingPlayer?.data?.userId === userId) {
+    console.log(`♻️ ${userId} daha önce waitingPlayer'dı, sıfırlandı.`);
+    waitingPlayer = null;
+  }
+
+  // 🧹 Bu kullanıcı daha önce bir oyundaysa, o oyunu sil
+  for (const gameId in ongoingGames) {
+    const game = ongoingGames[gameId];
+    if (game.players.find((p) => p.data.userId === userId)) {
+      console.log(`♻️ ${userId} daha önce ${gameId} oyunundaydı, oyun sonlandırıldı.`);
+      io.to(gameId).emit("opponent_disconnected"); // varsa rakip bilgilendir
+      delete ongoingGames[gameId];
+      break;
     }
+  }
 
-    socket.data.userId = userId;
-    socket.data.username = userData.username;
+  if (waitingPlayer) {
+    const gameId = `${waitingPlayer.id}-${socket.id}`;
+    const player1 = waitingPlayer;
+    const player2 = socket;
 
-    if (waitingPlayer) {
-      const gameId = `${waitingPlayer.id}-${socket.id}`;
-      const player1 = waitingPlayer;
-      const player2 = socket;
+    ongoingGames[gameId] = {
+      players: [player1, player2],
+      scores: {
+        [player1.data.userId]: 0,
+        [player2.data.userId]: 0,
+      },
+      startTime: Date.now(),
+    };
 
-      ongoingGames[gameId] = {
-        players: [player1, player2],
-        scores: {
-          [player1.data.userId]: 0,  // ✅ DÜZELTİLDİ
-          [player2.data.userId]: 0,  // ✅ DÜZELTİLDİ
+    player1.join(gameId);
+    player2.join(gameId);
+
+    // player1'e rakip bilgisi gönder
+    player1.emit("game_start", {
+      gameId,
+      mySocketId: player1.id,
+      opponentInfo: {
+        [player2.id]: {
+          userId: player2.data.userId,
+          username: player2.data.username,
         },
-        startTime: Date.now(),
-      };
+      },
+      duration: 60,
+    });
 
-      player1.join(gameId);
-      player2.join(gameId);
-
-      // player1'e sadece rakip bilgisi ve kendi socket id'sini yolla
-      player1.emit("game_start", {
-        gameId,
-        mySocketId: player1.id,
-        opponentInfo: {
-          [player2.id]: {
-            userId: player2.data.userId,
-            username: player2.data.username,
-          },
+    // player2'ye rakip bilgisi gönder
+    player2.emit("game_start", {
+      gameId,
+      mySocketId: player2.id,
+      opponentInfo: {
+        [player1.id]: {
+          userId: player1.data.userId,
+          username: player1.data.username,
         },
-        duration: 60,
-      });
+      },
+      duration: 60,
+    });
 
-      // player2'ye sadece rakip bilgisi ve kendi socket id'sini yolla
-      player2.emit("game_start", {
-        gameId,
-        mySocketId: player2.id,
-        opponentInfo: {
-          [player1.id]: {
-            userId: player1.data.userId,
-            username: player1.data.username,
-          },
-        },
-        duration: 60,
-      });
+    waitingPlayer = null;
+  } else {
+    waitingPlayer = socket;
+    socket.emit("waiting_for_opponent");
+  }
+});
 
-      waitingPlayer = null;
-    } else {
-      waitingPlayer = socket;
-      socket.emit("waiting_for_opponent");
-    }
-  });
-
+  /// JOİN GAME END
+  
   socket.on("send_ghost", ({ gameId, ghostType, ghostId, position, lane }) => {
   socket.to(gameId).emit("enemy_ghost", {
     ghostType,
