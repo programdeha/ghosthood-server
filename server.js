@@ -69,7 +69,10 @@ socket.on("join_game", async ({ userId }) => {
     const game = ongoingGames[gameId];
     if (game.players.find((p) => p.data.userId === userId)) {
       console.log(`♻️ ${userId} daha önce ${gameId} oyunundaydı, oyun sonlandırıldı.`);
-      io.to(gameId).emit("opponent_disconnected"); // varsa rakip bilgilendir
+      const otherPlayer = game.players.find((p) => p.data.userId !== userId);
+      if (otherPlayer) {
+        otherPlayer.emit("opponent_disconnected");
+      }
       delete ongoingGames[gameId];
       break;
     }
