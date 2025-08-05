@@ -125,43 +125,43 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("ghost_killed", ({ gameId, by }) => {
-  const game = ongoingGames[gameId];
-  if (game && game.scores[by] != null) {
-    game.scores[by]++;
-    io.to(gameId).emit("score_update", game.scores);
-    console.log(`✅ ${by} için skor güncellendi: ${game.scores[by]}`);
-  } else {
-    console.warn(`❌ Geçersiz kullanıcı veya skor: gameId=${gameId}, by=${by}`);
-  }
-});
-
- socket.on("disconnect", () => {
-  console.log("Oyuncu ayrıldı:", socket.id);
-
-  setTimeout(() => {
-    if (waitingPlayer && waitingPlayer.id === socket.id) {
-      // Eğer bekleyen kişi ayrıldıysa sıfırla
-      waitingPlayer = null;
-    } else if (waitingPlayer) {
-      // Eğer bekleyen kişi karşı oyuncuysa, ona bilgi gönder
-      waitingPlayer.emit("opponent_disconnected");
-      waitingPlayer = null;
+    socket.on("ghost_killed", ({ gameId, by }) => {
+    const game = ongoingGames[gameId];
+    if (game && game.scores[by] != null) {
+      game.scores[by]++;
+      io.to(gameId).emit("score_update", game.scores);
+      console.log(`✅ ${by} için skor güncellendi: ${game.scores[by]}`);
+    } else {
+      console.warn(`❌ Geçersiz kullanıcı veya skor: gameId=${gameId}, by=${by}`);
     }
+  });
 
-    for (const gameId in ongoingGames) {
-      const game = ongoingGames[gameId];
-      if (game.players.find((p) => p.id === socket.id)) {
-        io.to(gameId).emit("opponent_disconnected");
-        delete ongoingGames[gameId];
-        console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
-        break;
+   socket.on("disconnect", () => {
+    console.log("Oyuncu ayrıldı:", socket.id);
+  
+    setTimeout(() => {
+      if (waitingPlayer && waitingPlayer.id === socket.id) {
+        // Eğer bekleyen kişi ayrıldıysa sıfırla
+        waitingPlayer = null;
+      } else if (waitingPlayer) {
+        // Eğer bekleyen kişi karşı oyuncuysa, ona bilgi gönder
+        waitingPlayer.emit("opponent_disconnected");
+        waitingPlayer = null;
       }
-    }
-  }, 2000);
+  
+      for (const gameId in ongoingGames) {
+        const game = ongoingGames[gameId];
+        if (game.players.find((p) => p.id === socket.id)) {
+          io.to(gameId).emit("opponent_disconnected");
+          delete ongoingGames[gameId];
+          console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
+          break;
+        }
+      }
+    }, 2000);
+  });
+  
 });
-
-
 server.listen(process.env.PORT || 3000, () => {
   console.log(`Sunucu ${process.env.PORT || 3000} portunda çalışıyor`);
 });
