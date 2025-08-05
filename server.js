@@ -136,26 +136,31 @@ io.on("connection", (socket) => {
   }
 });
 
-  socket.on("disconnect", () => {
-    console.log("Oyuncu ayrıldı:", socket.id);
+ socket.on("disconnect", () => {
+  console.log("Oyuncu ayrıldı:", socket.id);
 
-    setTimeout(() => {
-      if (waitingPlayer && waitingPlayer.id === socket.id) {
-        waitingPlayer = null;
-      }
+  setTimeout(() => {
+    if (waitingPlayer && waitingPlayer.id === socket.id) {
+      // Eğer bekleyen kişi ayrıldıysa sıfırla
+      waitingPlayer = null;
+    } else if (waitingPlayer) {
+      // Eğer bekleyen kişi karşı oyuncuysa, ona bilgi gönder
+      waitingPlayer.emit("opponent_disconnected");
+      waitingPlayer = null;
+    }
 
-      for (const gameId in ongoingGames) {
-        const game = ongoingGames[gameId];
-        if (game.players.find((p) => p.id === socket.id)) {
-          io.to(gameId).emit("opponent_disconnected");
-          delete ongoingGames[gameId];
-          console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
-          break;
-        }
+    for (const gameId in ongoingGames) {
+      const game = ongoingGames[gameId];
+      if (game.players.find((p) => p.id === socket.id)) {
+        io.to(gameId).emit("opponent_disconnected");
+        delete ongoingGames[gameId];
+        console.log(`Oyun ${gameId} oyuncu ayrıldığı için sonlandırıldı.`);
+        break;
       }
-    }, 2000);
-  });
+    }
+  }, 2000);
 });
+
 
 server.listen(process.env.PORT || 3000, () => {
   console.log(`Sunucu ${process.env.PORT || 3000} portunda çalışıyor`);
